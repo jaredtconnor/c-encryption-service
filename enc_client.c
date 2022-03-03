@@ -62,45 +62,65 @@ int main(int argc, char *argv[]) {
   int socketFD, portNumber, charsWritten, charsRead;
   struct sockaddr_in serverAddress;
   char buffer[MAXLEN];
-
+  char key_buffer[MAXLEN];
+  FILE *inputfile;
+  FILE *keyfile;
+  size_t input_len;
+  size_t key_len;
   // Check usage & args
   if (argc < 4) { 
-    fprintf(stderr,"USAGE: %s inputfile hostname port\n", argv[0]); 
+    fprintf(stderr,"USAGE: %s inputfile keyfile port\n", argv[0]); 
     exit(0); 
   } 
+  
+  // Setup input file to read and key
+  inputfile = fopen(argv[1], "r");
+  keyfile = fopen(argv[2], "r");
+
+  // Clear out the buffer array
+  memset(buffer, '\0', sizeof(buffer));
+  memset(key_buffer, '\0', sizeof(key_buffer));
+
+  if(inputfile != NULL){ 
+    input_len  = fread(buffer, sizeof(char), MAXLEN, inputfile);
+  
+    if(ferror(inputfile) != 0){ 
+      error("Unable to read file\n"); 
+    } else { 
+      buffer[input_len + 1] = '\0'; 
+    }
+    fclose(inputfile);
+  }  
+
+  if(keyfile != NULL){ 
+    key_len  = fread(key_buffer, sizeof(char), MAXLEN, keyfile);
+  
+    if(ferror(keyfile) != 0){ 
+      error("Unable to read key file\n"); 
+    } else { 
+      key_buffer[key_len + 1] = '\0'; 
+    }
+    fclose(keyfile);
+  }  
+
+  if (key_len < input_len){ 
+    error("CLIENT: ERROR Keygen is unable to cover input length\n");
+  }
 
   // Create a socket
   socketFD = socket(AF_INET, SOCK_STREAM, 0); 
   if (socketFD < 0){
     error("CLIENT: ERROR opening socket");
   }
-  
-  // Setup input file to read
-  FILE * inputfile = fopen(argv[1], "r");
 
    // Set up the server address struct
-  setupAddressStruct(&serverAddress, atoi(argv[3]), argv[2]);
+  setupAddressStruct(&serverAddress, atoi(argv[3]), "localhost");
 
   // Connect to server
   if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
     error("CLIENT: ERROR connecting");
   }
 
-  // Clear out the buffer array
-  memset(buffer, '\0', sizeof(buffer));
-
-  // Send message to server
-  if(inputfile != NULL){ 
-    size_t new_len = fread(buffer, sizeof(char), MAXLEN, inputfile);
-  
-    if(ferror(inputfile) != 0){ 
-      error("Unable to read file\n"); 
-    } else { 
-      buffer[new_len++] = '\0'; 
-    }
-    fclose(inputfile);
-    printf("Input file parsed correctly\n");
-  }  
 
   // Write to the server
   charsWritten = send(socketFD, buffer, strlen(buffer), 0); 

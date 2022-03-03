@@ -6,11 +6,14 @@ target:
 	gcc -std=gnu99 -Wall -g -o keygen keygen.c
 	rm -rf *.o
 
+keygen: 
+	gcc -std=gnu99 -Wall -g -o keygen keygen.c
+
 client: 
 	gcc -std=gnu99 -Wall -o enc_client enc_client.c
 
 client_run: 
-	./enc_client test_scripts/plaintext1 localhost 56111
+	./enc_client test_scripts/plaintext1 testkey 56111
 
 server: 
 	gcc -std=gnu99 -Wall -o enc_server enc_server.c

@@ -1,4 +1,3 @@
-#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,31 +5,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <errno.h>
 
 #define MAXLEN 100000
-
-void encrypt()
-{
-
-  return;
-}
-
-void sig_handler(int sig)
-{
-
-  pid_t PID;
-  int status;
-
-  do
-  {
-    PID = waitpid(-1, &status, WNOHANG);
-
-  } while (PID != -1);
-}
 
 // Error function used for reporting issues
 void error(const char *msg)
@@ -61,9 +37,6 @@ int main(int argc, char *argv[])
   char buffer[MAXLEN];
   struct sockaddr_in serverAddress, clientAddress;
   socklen_t sizeOfClientInfo = sizeof(clientAddress);
-
-  signal(SIGCHLD, sig_handler);
-  pid_t con_pid;
 
   // Check usage & args
   if (argc < 2)
@@ -97,54 +70,39 @@ int main(int argc, char *argv[])
   while (1)
   {
     // Accept the connection request which creates a connection socket
-    connectionSocket = accept(listenSocket, (struct sockaddr *)&clientAddress, &sizeOfClientInfo);
-
-    printf("SERVER: Connected to client running at host %d port %d\n", ntohs(clientAddress.sin_addr.s_addr), ntohs(clientAddress.sin_port));
-
-    // Get the message from the client and display it
-    memset(buffer, '\0', MAXLEN);
-
+    connectionSocket = accept(listenSocket,
+                              (struct sockaddr *)&clientAddress,
+                              &sizeOfClientInfo);
     if (connectionSocket < 0)
     {
       error("ERROR on accept");
     }
 
-    con_pid = fork();
+    printf("SERVER: Connected to client running at host %d port %d\n",
+           ntohs(clientAddress.sin_addr.s_addr),
+           ntohs(clientAddress.sin_port));
 
-    // If we're child - we can read write on client via client_sockfd
-    if (con_pid == -1)
-    {
-      close(connectionSocket);
-      continue;
-    } 
-
-    else if (con_pid > 0){ 
-      close(connectionSocket); 
-      continue;
-    }
-
+    // Get the message from the client and display it
+    memset(buffer, '\0', 256);
     // Read the client's message from the socket
-    charsRead = recv(connectionSocket, buffer, MAXLEN - 1, 0);
-
+    charsRead = recv(connectionSocket, buffer, 255, 0);
     if (charsRead < 0)
     {
       error("ERROR reading from socket");
     }
-
     printf("SERVER: I received this from the client: \"%s\"\n", buffer);
 
     // Send a Success message back to the client
     charsRead = send(connectionSocket,
-                      "I am the server, and I got your message", 39, 0);
+                     "I am the server, and I got your message", 39, 0);
     if (charsRead < 0)
     {
       error("ERROR writing to socket");
     }
-
-    memset(buffer, 0, MAXLEN);
+    // Close the connection socket for this client
     close(connectionSocket);
   }
-
+  // Close the listening socket
   close(listenSocket);
   return 0;
 }
