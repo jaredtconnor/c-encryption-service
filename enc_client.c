@@ -21,6 +21,18 @@ void error(const char *msg) {
   exit(0); 
 } 
 
+size_t checkfilelen(FILE * inputfile){ 
+
+  ssize_t pos = ftell(inputfile); 
+  fseek(inputfile, 0, SEEK_END); 
+  ssize_t length = ftell(inputfile); 
+  fseek(inputfile, pos, SEEK_SET); 
+
+  return length;
+
+}
+
+
 // Set up the address struct
 void setupAddressStruct(struct sockaddr_in* address, 
                         int portNumber, 
@@ -50,6 +62,7 @@ int main(int argc, char *argv[]) {
   int socketFD, portNumber, charsWritten, charsRead;
   struct sockaddr_in serverAddress;
   char buffer[MAXLEN];
+
   // Check usage & args
   if (argc < 4) { 
     fprintf(stderr,"USAGE: %s inputfile hostname port\n", argv[0]); 
@@ -101,6 +114,7 @@ int main(int argc, char *argv[]) {
   // Get return message from server
   // Clear out the buffer again for reuse
   memset(buffer, '\0', sizeof(buffer));
+
   // Read data from the socket, leaving \0 at end
   charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); 
   if (charsRead < 0){
