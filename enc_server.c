@@ -5,21 +5,21 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <pthread.h>
-#include <semaphore.h>
 
 #define MAXLEN 100000
 
-/* Function prototypes */ 
-void error(const char *); 
+/* Function prototypes */
+void error(const char *);
 void setupAddressStruct(struct sockaddr_in *, int);
 
 int main(int argc, char *argv[])
 {
-  int connectionSocket, charsRead;
+  int newCon, charsRead, charSent;
   char buffer[MAXLEN];
   struct sockaddr_in serverAddress, clientAddress;
   socklen_t sizeOfClientInfo = sizeof(clientAddress);
+  pid_t con_pid;
+  static int counter = 0;
 
   // Check usage & args
   if (argc < 2)
@@ -53,10 +53,10 @@ int main(int argc, char *argv[])
   while (1)
   {
     // Accept the connection request which creates a connection socket
-    connectionSocket = accept(listenSocket,
-                              (struct sockaddr *)&clientAddress,
-                              &sizeOfClientInfo);
-    if (connectionSocket < 0)
+    newCon = accept(listenSocket,
+                    (struct sockaddr *)&clientAddress,
+                    &sizeOfClientInfo);
+    if (newCon < 0)
     {
       error("ERROR on accept");
     }
@@ -65,27 +65,44 @@ int main(int argc, char *argv[])
            ntohs(clientAddress.sin_addr.s_addr),
            ntohs(clientAddress.sin_port));
 
-    // Get the message from the client and display it
-    memset(buffer, '\0', 256);
-    // Read the client's message from the socket
-    charsRead = recv(connectionSocket, buffer, 255, 0);
-    if (charsRead < 0)
+    if ((con_pid = fork()) == -1)
     {
-      error("ERROR reading from socket");
+      close(newCon);
+      continue;
     }
-    printf("SERVER: I received this from the client: \"%s\"\n", buffer);
+    else if (con_pid > 0)
+    {
+      close(newCon);
+      counter++;
+      continue;
+    }
+    else if (con_pid == 0)
+    {
 
-    // Send a Success message back to the client
-    charsRead = send(connectionSocket,
-                     "I am the server, and I got your message", 39, 0);
-    if (charsRead < 0)
-    {
-      error("ERROR writing to socket");
+      counter++;
+
+      memset(buffer, '\0', MAXLEN);
+      charsRead = recv(newCon, buffer, MAXLEN, 0);
+
+      if (charsRead < 0)
+      {
+        error("ERROR reading from socket");
+      }
+
+      printf("SERVER: Recieved this from client: \"%s\"\n", buffer);
+
+      // Send a Success message back to the client
+      charSent = send(newCon, "I am the server, and I got your message", 39, 0);
+
+      if (charSent < 0)
+      {
+        error("ERROR writing to socket");
+      }
+
+      close(newCon);
     }
-    // Close the connection socket for this client
-    close(connectionSocket);
   }
-  // Close the listening socket
+
   close(listenSocket);
   return 0;
 }

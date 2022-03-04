@@ -86,9 +86,9 @@ int main(int argc, char *argv[]) {
   
     if(ferror(inputfile) != 0){ 
       error("Unable to read file\n"); 
-    } else { 
-      buffer[input_len + 1] = '\0'; 
-    }
+    } 
+
+    buffer[strcspn(buffer, "\r\n")] = 0;
     fclose(inputfile);
   }  
 
@@ -97,9 +97,9 @@ int main(int argc, char *argv[]) {
   
     if(ferror(keyfile) != 0){ 
       error("Unable to read key file\n"); 
-    } else { 
-      key_buffer[key_len + 1] = '\0'; 
     }
+
+    buffer[strcspn(buffer, "\r\n")] = 0;
     fclose(keyfile);
   }  
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
   if (charsRead < 0){
     error("CLIENT: ERROR reading from socket");
   }
-  printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
+  //printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
 
   // Close the socket
   close(socketFD); 

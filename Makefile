@@ -19,6 +19,9 @@ server:
 	gcc -std=gnu99 -Wall -o enc_server enc_server.c
 
 server_run: 
+	./enc_server 56111
+
+server_run_bg: 
 	./enc_server 56111 &
 
 server_kill: 
