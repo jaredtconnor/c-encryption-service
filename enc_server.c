@@ -8,9 +8,21 @@
 
 #define MAXLEN 100000
 
+typedef struct encrypt_data
+{ 
+  char data[MAXLEN]; 
+  int data_len_read;
+  char key[MAXLEN];
+  int key_len_read;
+  int len_sent;
+} encrypt_data_t;
+
+
 /* Function prototypes */
 void error(const char *);
 void setupAddressStruct(struct sockaddr_in *, int);
+void init_data(encrypt_data_t data);
+void encrypt(encrypt_data_t data);
 
 int main(int argc, char *argv[])
 {
@@ -20,6 +32,8 @@ int main(int argc, char *argv[])
   socklen_t sizeOfClientInfo = sizeof(clientAddress);
   pid_t con_pid;
   static int counter = 0;
+  encrypt_data_t connection_data;
+  init_data(connection_data); 
 
   // Check usage & args
   if (argc < 2)
@@ -81,20 +95,38 @@ int main(int argc, char *argv[])
 
       counter++;
 
-      memset(buffer, '\0', MAXLEN);
-      charsRead = recv(newCon, buffer, MAXLEN, 0);
+      memset(connection_data.data, '\0', MAXLEN);
+      connection_data.data_len_read = recv(newCon, connection_data.data, MAXLEN, 0);
 
-      if (charsRead < 0)
+      if (connection_data.data_len_read < 0)
+      {
+        error("ERROR reading from socket");
+      }
+      printf("SERVER: Recieved data from client: \"%s\"\n", connection_data.data);
+
+      // Send a Success message back to the client
+      char data_reply_2[] = "SENDKEY\0";
+      connection_data.len_sent = send(newCon, data_reply_2, strlen(data_reply_2), 0);
+
+      if (connection_data.len_sent < 0)
+      {
+        error("ERROR writing to socket");
+      }
+
+      memset(connection_data.key, '\0', MAXLEN);
+      connection_data.key_len_read = recv(newCon, connection_data.key, MAXLEN, 0);
+
+      printf("SERVER: Recieved key from client: \"%s\"\n", connection_data.key);
+      if (connection_data.key_len_read < 0)
       {
         error("ERROR reading from socket");
       }
 
-      printf("SERVER: Recieved this from client: \"%s\"\n", buffer);
-
       // Send a Success message back to the client
-      charSent = send(newCon, "I am the server, and I got your message", 39, 0);
+      char data_reply_1[] = "Data recieved\0";
+      connection_data.len_sent = send(newCon, data_reply_1, strlen(data_reply_1), 0);
 
-      if (charSent < 0)
+      if (connection_data.len_sent < 0)
       {
         error("ERROR writing to socket");
       }
@@ -103,6 +135,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  
   close(listenSocket);
   return 0;
 }
@@ -128,4 +161,29 @@ void setupAddressStruct(struct sockaddr_in *address,
   address->sin_port = htons(portNumber);
   // Allow a client at any address to connect to this server
   address->sin_addr.s_addr = INADDR_ANY;
+}
+
+void init_data(encrypt_data_t data){ 
+
+  memset(data.data, '\0', MAXLEN);
+  memset(data.key, '\0', MAXLEN);
+
+  data.data_len_read = 0;
+  data.key_len_read = 0;
+  data.len_sent = 0;
+
+}
+
+void encrypt(encrypt_data_t data){ 
+
+
+
+
+
+
+
+
+
+
+
 }

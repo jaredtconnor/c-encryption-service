@@ -8,12 +8,6 @@
 
 #define MAXLEN 100000
 
-/**
-* Client code
-* 1. Create a socket and connect to the server specified in the command arugments.
-* 2. Prompt the user for input and send that input as a message to the server.
-* 3. Print the message received from the server and exit the program.
-*/
 
 // Error function used for reporting issues
 void error(const char *msg) { 
@@ -31,7 +25,6 @@ size_t checkfilelen(FILE * inputfile){
   return length;
 
 }
-
 
 // Set up the address struct
 void setupAddressStruct(struct sockaddr_in* address, 
@@ -62,6 +55,7 @@ int main(int argc, char *argv[]) {
   int socketFD, portNumber, charsWritten, charsRead;
   struct sockaddr_in serverAddress;
   char buffer[MAXLEN];
+  char reply_buffer[MAXLEN];
   char key_buffer[MAXLEN];
   FILE *inputfile;
   FILE *keyfile;
@@ -124,6 +118,7 @@ int main(int argc, char *argv[]) {
 
   // Write to the server
   charsWritten = send(socketFD, buffer, strlen(buffer), 0); 
+
   if (charsWritten < 0){
     error("CLIENT: ERROR writing to socket");
   }
@@ -131,18 +126,25 @@ int main(int argc, char *argv[]) {
     printf("CLIENT: WARNING: Not all data written to socket!\n");
   }
 
-  // Get return message from server
+ // Get return message from server
   // Clear out the buffer again for reuse
-  memset(buffer, '\0', sizeof(buffer));
-
+  memset(reply_buffer, '\0', sizeof(reply_buffer));
   // Read data from the socket, leaving \0 at end
-  charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); 
+  charsRead = recv(socketFD, reply_buffer, sizeof(reply_buffer) - 1, 0); 
   if (charsRead < 0){
     error("CLIENT: ERROR reading from socket");
   }
-  //printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
+  printf("CLIENT: I received this from the server: \"%s\"\n", reply_buffer);
+
+  if(strcmp(reply_buffer, "SENDKEY\0") == 0){ 
+    printf("Requesting Key\n");
+  }
+
+  // Write to the server
+  charsWritten = send(socketFD, key_buffer, strlen(key_buffer), 0); 
 
   // Close the socket
   close(socketFD); 
   return 0;
 } 
+ XLHPPHPT DPXD L D
