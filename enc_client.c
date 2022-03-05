@@ -5,9 +5,11 @@
 #include <sys/types.h>  // ssize_t
 #include <sys/socket.h> // send(),recv()
 #include <netdb.h>      // gethostbyname()
+#include <stdbool.h>
 
 #define MAXLEN 100000
 
+bool DEBUG = false;
 
 // Error function used for reporting issues
 void error(const char *msg) { 
@@ -80,7 +82,7 @@ int main(int argc, char *argv[]) {
     input_len  = fread(buffer, sizeof(char), MAXLEN, inputfile);
   
     if(ferror(inputfile) != 0){ 
-      error("Unable to read file\n"); 
+      error("Unable to read file\n");
     } 
 
     buffer[strcspn(buffer, "\r\n")] = 0;
@@ -146,7 +148,9 @@ int main(int argc, char *argv[]) {
     error("CLIENT: ERROR reading from socket");
   }
 
-  printf("CLIENT: I received this encyrpted message the server: \"%s\"\n", encrypyt_buffer);
+  if(DEBUG){printf("CLIENT: I received this encyrpted message the server: \"%s\"\n", encrypyt_buffer);}
+
+  fprintf(stdout, "%s", encrypyt_buffer);
 
   // Close the socket
   close(socketFD); 
