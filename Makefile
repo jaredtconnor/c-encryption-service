@@ -1,8 +1,8 @@
 target:
 	@echo "Compiling..."
-	gcc -std=gnu99 -Wall -o enc_client enc_client.c
-	gcc -std=gnu99 -Wall -o dec_server dec_server.c
-	gcc -std=gnu99 -Wall -o dec_client dec_client.c
+	gcc -std=gnu99 -Wall -g -o enc_client enc_client.c
+	gcc -std=gnu99 -Wall -g -o dec_server dec_server.c
+	gcc -std=gnu99 -Wall -g -o dec_client dec_client.c
 	gcc -std=gnu99 -Wall -g -o keygen keygen.c
 	rm -rf *.o
 
@@ -13,13 +13,13 @@ test_key:
 	./keygen 37 > testkey
 
 client: 
-	gcc -std=gnu99 -Wall -o enc_client enc_client.c
+	gcc -std=gnu99 -Wall -g -o enc_client enc_client.c
 
 client_run: 
 	./enc_client test_scripts/plaintext1 testkey 56111
 
 server: 
-	gcc -std=gnu99 -Wall -o enc_server enc_server.c
+	gcc -std=gnu99 -Wall -g -o enc_server enc_server.c
 
 server_run: 
 	./enc_server 56111

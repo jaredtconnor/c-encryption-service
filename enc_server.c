@@ -23,8 +23,8 @@ typedef struct encrypt_data
 /* Function prototypes */
 void error(const char *);
 void setupAddressStruct(struct sockaddr_in *, int);
-void init_data(encrypt_data_t data);
-void encrypt(encrypt_data_t data);
+void init_data(encrypt_data_t * data);
+void encrypt(encrypt_data_t * data);
 
 int main(int argc, char *argv[])
 {
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
   pid_t con_pid;
   static int counter = 0;
   encrypt_data_t connection_data;
-  init_data(connection_data);
+  init_data(&connection_data);
 
   // Check usage & args
   if (argc < 2)
@@ -66,6 +66,9 @@ int main(int argc, char *argv[])
   listen(listenSocket, 5);
 
   // Accept a connection, blocking if one is not available until one connects
+  /* 
+  Source - https://www.cs.dartmouth.edu/~campbell/cs50/socketprogramming.html
+  */
   while (1)
   {
     // Accept the connection request which creates a connection socket
@@ -81,20 +84,12 @@ int main(int argc, char *argv[])
            ntohs(clientAddress.sin_addr.s_addr),
            ntohs(clientAddress.sin_port));
 
-    if ((con_pid = fork()) == -1)
-    {
-      close(newCon);
-      continue;
-    }
-    else if (con_pid > 0)
-    {
-      close(newCon);
-      counter++;
-      continue;
-    }
-    else if (con_pid == 0)
+    if ((con_pid = fork()) == 0)
     {
 
+      close(listenSocket);
+
+      printf("CHILD - Encrypting message\n");
       counter++;
 
       memset(connection_data.data, '\0', MAXLEN);
@@ -122,7 +117,7 @@ int main(int argc, char *argv[])
         error("ERROR reading from socket");
       }
 
-      encrypt(connection_data);
+      encrypt(&connection_data);
 
       // Send encrypted data to client
       connection_data.len_sent = send(newCon, connection_data.cipher, strlen(connection_data.cipher), 0);
@@ -132,12 +127,15 @@ int main(int argc, char *argv[])
         error("ERROR writing to socket");
       }
 
-
       close(newCon);
+      exit(0); // child terminates
     }
+
+
+  close(newCon); // parnet closes connected socket
   }
 
-  close(listenSocket);
+
   return 0;
 }
 
@@ -164,30 +162,31 @@ void setupAddressStruct(struct sockaddr_in *address,
   address->sin_addr.s_addr = INADDR_ANY;
 }
 
-void init_data(encrypt_data_t data)
+void init_data(encrypt_data_t * data)
 {
 
-  memset(data.data, '\0', MAXLEN);
-  memset(data.key, '\0', MAXLEN);
-  memset(data.cipher, '\0', MAXLEN);
+  memset(data->data, '\0', MAXLEN);
+  memset(data->key, '\0', MAXLEN);
+  memset(data->cipher, '\0', MAXLEN);
 
-  data.data_len_read = 0;
-  data.key_len_read = 0;
-  data.cipher_len = 0;
-  data.len_sent = 0;
+  data->data_len_read = 0;
+  data->key_len_read = 0;
+  data->cipher_len = 0;
+  data->len_sent = 0;
 }
 
-void encrypt(encrypt_data_t connection_data)
+void encrypt(encrypt_data_t * connection_data)
 {
 
-  printf("SERVER: Recieved data from client: \"%s\"\n", connection_data.data);
-  printf("SERVER: Recieved key from client: \"%s\"\n", connection_data.key);
+  printf("SERVER: Recieved data from client: \"%s\"\n", connection_data->data);
+  printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
 
-  for(int i=0; i<=strlen(connection_data.data); i++){
-    connection_data.cipher[i] = (connection_data.data[i] + connection_data.key[i]) % 26;
+  for (int i = 0; i <= connection_data->key_len_read; i++)
+  {
+    connection_data->cipher[i] = (connection_data->data[i] + connection_data->key[i]) % 26 + 65;
   }
 
-  printf("SERVER: Encrypted message: \"%s\"\n", connection_data.cipher);
+  printf("SERVER: Cipher text sent to client: \"%s\"\n", connection_data->key);
 
   return;
 }

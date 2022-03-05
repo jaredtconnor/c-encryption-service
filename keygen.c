@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
         keygen->keygen_key[i] = random_char(); 
     }
 
-    keygen->keygen_key[keygen->key_len] = '\n';
+    keygen->keygen_key[keygen->key_len] = '\0';
 
     print_key(keygen);
     free(keygen); 

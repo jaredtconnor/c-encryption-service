@@ -1,0 +1,13 @@
+{
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "make server",
+            "args": [
+            ],
+            "group": "build"
+        }
+    ],
+    "version": "2.0.0"
+}
