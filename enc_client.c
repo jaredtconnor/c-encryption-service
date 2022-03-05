@@ -57,6 +57,7 @@ int main(int argc, char *argv[]) {
   char buffer[MAXLEN];
   char reply_buffer[MAXLEN];
   char key_buffer[MAXLEN];
+  char encrypyt_buffer[MAXLEN];
   FILE *inputfile;
   FILE *keyfile;
   size_t input_len;
@@ -93,7 +94,7 @@ int main(int argc, char *argv[]) {
       error("Unable to read key file\n"); 
     }
 
-    buffer[strcspn(buffer, "\r\n")] = 0;
+    buffer[strcspn(buffer, "\r")] = 0;
     fclose(keyfile);
   }  
 
@@ -115,36 +116,39 @@ int main(int argc, char *argv[]) {
     error("CLIENT: ERROR connecting");
   }
 
-
   // Write to the server
   charsWritten = send(socketFD, buffer, strlen(buffer), 0); 
 
   if (charsWritten < 0){
     error("CLIENT: ERROR writing to socket");
   }
+
   if (charsWritten < strlen(buffer)){
     printf("CLIENT: WARNING: Not all data written to socket!\n");
   }
 
- // Get return message from server
-  // Clear out the buffer again for reuse
   memset(reply_buffer, '\0', sizeof(reply_buffer));
-  // Read data from the socket, leaving \0 at end
   charsRead = recv(socketFD, reply_buffer, sizeof(reply_buffer) - 1, 0); 
   if (charsRead < 0){
     error("CLIENT: ERROR reading from socket");
   }
-  printf("CLIENT: I received this from the server: \"%s\"\n", reply_buffer);
 
   if(strcmp(reply_buffer, "SENDKEY\0") == 0){ 
-    printf("Requesting Key\n");
+    // Write to the server
+    charsWritten = send(socketFD, key_buffer, strlen(key_buffer), 0); 
+    //printf("Requesting Key\n");
   }
 
-  // Write to the server
-  charsWritten = send(socketFD, key_buffer, strlen(key_buffer), 0); 
+  memset(encrypyt_buffer, '\0', sizeof(encrypyt_buffer));
+
+  charsRead = recv(socketFD, encrypyt_buffer, sizeof(encrypyt_buffer) - 1, 0); 
+  if (charsRead < 0){
+    error("CLIENT: ERROR reading from socket");
+  }
+
+  printf("CLIENT: I received this encyrpted message the server: \"%s\"\n", encrypyt_buffer);
 
   // Close the socket
   close(socketFD); 
   return 0;
 } 
- XLHPPHPT DPXD L D
