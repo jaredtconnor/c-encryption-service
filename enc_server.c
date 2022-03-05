@@ -23,8 +23,10 @@ typedef struct encrypt_data
 /* Function prototypes */
 void error(const char *);
 void setupAddressStruct(struct sockaddr_in *, int);
-void init_data(encrypt_data_t * data);
-void encrypt(encrypt_data_t * data);
+void init_data(encrypt_data_t *data);
+void encrypt(encrypt_data_t *data);
+char convert(int);
+char deconvert(int);
 
 int main(int argc, char *argv[])
 {
@@ -66,7 +68,7 @@ int main(int argc, char *argv[])
   listen(listenSocket, 5);
 
   // Accept a connection, blocking if one is not available until one connects
-  /* 
+  /*
   Source - https://www.cs.dartmouth.edu/~campbell/cs50/socketprogramming.html
   */
   while (1)
@@ -131,10 +133,8 @@ int main(int argc, char *argv[])
       exit(0); // child terminates
     }
 
-
-  close(newCon); // parnet closes connected socket
+    close(newCon); // parnet closes connected socket
   }
-
 
   return 0;
 }
@@ -162,7 +162,7 @@ void setupAddressStruct(struct sockaddr_in *address,
   address->sin_addr.s_addr = INADDR_ANY;
 }
 
-void init_data(encrypt_data_t * data)
+void init_data(encrypt_data_t *data)
 {
 
   memset(data->data, '\0', MAXLEN);
@@ -175,24 +175,50 @@ void init_data(encrypt_data_t * data)
   data->len_sent = 0;
 }
 
-void encrypt(encrypt_data_t * connection_data)
+void encrypt(encrypt_data_t *connection_data)
 {
 
+  int cipher = 0; 
   printf("SERVER: Recieved data from client: \"%s\"\n", connection_data->data);
   printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
-  printf("Pre - Dec cipher data: %d\n", connection_data->data[3]);
-  printf("Pre - Char cipher data: %c\n", connection_data->data[3]);
+  printf("Pre - Dec data data: %d\n", connection_data->data[3]);
+  printf("Pre - Char data data: %c\n", connection_data->data[3]);
   printf("Pre - Dec key data: %d\n", connection_data->key[3]);
   printf("Pre - Char key data: %c\n", connection_data->key[3]);
 
   for (int i = 0; i <= connection_data->key_len_read; i++)
   {
-    connection_data->cipher[i] = (connection_data->data[i] + connection_data->key[i]) % 26 + 65;
+
+    cipher = (connection_data->data[i] + connection_data->key[i]) % 27;
+    connection_data->cipher[i] = convert(cipher); 
+
   }
 
-  printf("Post - Dec key data: %d\n", connection_data->cipher[3]);
-  printf("Post - Char key data: %d\n", connection_data->cipher[3]);
-  printf("SERVER: Cipher text sent to client: \"%s\"\n", connection_data->key);
+  printf("Post - Dec cipher data: %d\n", connection_data->cipher[3]);
+  printf("Post - Char cipher data: %d\n", connection_data->cipher[3]);
+  printf("SERVER: Cipher text sent to client: \"%s\"\n", connection_data->cipher);
 
   return;
+}
+
+char convert(int input)
+{
+  char allowablechars[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+  return allowablechars[input];
+}
+
+char deconvert(int input){ 
+
+  char allowablechars[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+  char result;
+
+  for(int i=0; i<strlen(allowablechars); i++){ 
+    
+    if(allowablechars[i] == input){ 
+      result = i;
+    }
+
+  }
+
+  return result;
 }

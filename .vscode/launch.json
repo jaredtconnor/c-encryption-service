@@ -5,12 +5,39 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "GDB Debug",
+            "name": "enc_server",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/enc_server",
             "args": [
                 "56111"
+            ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}", 
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build",
+            "miDebuggerPath": "/usr/bin/gdb"
+        }, 
+        {
+            "name": "dec_client",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/dec_client",
+            "args": [
+                "testciphertext", 
+                "testkey", 
+                "56112", 
+                ">", 
+                "testfinalresults"
             ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}", 
