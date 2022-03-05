@@ -16,7 +16,13 @@ client:
 	gcc -std=gnu99 -Wall -g -o enc_client enc_client.c
 
 client_run: 
-	./enc_client test_scripts/plaintext1 testkey 56111
+	./enc_client test_scripts/plaintext1 testkey 56111 > testciphertext
+
+decclient: 
+	gcc -std=gnu99 -Wall -g -o dec_client dec_client.c
+
+decclient_run: 
+	./dec_client testciphertext testkey 56112 > testfinalresults
 
 server: 
 	gcc -std=gnu99 -Wall -g -o enc_server enc_server.c
@@ -29,6 +35,18 @@ server_run_bg:
 
 server_kill: 
 	pkill -f enc_server
+
+decserver: 
+	gcc -std=gnu99 -Wall -g -o dec_server dec_server.c
+
+decserver_run: 
+	./dec_server 56112
+
+decserver_run_bg: 
+	./dec_server 56112 &
+
+decserver_kill: 
+	pkill -f dec_server
 
 clean:
 	rm -rf *.o
