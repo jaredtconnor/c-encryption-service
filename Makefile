@@ -9,6 +9,9 @@ target:
 keygen: 
 	gcc -std=gnu99 -Wall -g -o keygen keygen.c
 
+test_key: 
+	./keygen 37 > testkey
+
 client: 
 	gcc -std=gnu99 -Wall -o enc_client enc_client.c
 
