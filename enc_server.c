@@ -180,12 +180,18 @@ void encrypt(encrypt_data_t * connection_data)
 
   printf("SERVER: Recieved data from client: \"%s\"\n", connection_data->data);
   printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
+  printf("Pre - Dec cipher data: %d\n", connection_data->data[3]);
+  printf("Pre - Char cipher data: %c\n", connection_data->data[3]);
+  printf("Pre - Dec key data: %d\n", connection_data->key[3]);
+  printf("Pre - Char key data: %c\n", connection_data->key[3]);
 
   for (int i = 0; i <= connection_data->key_len_read; i++)
   {
     connection_data->cipher[i] = (connection_data->data[i] + connection_data->key[i]) % 26 + 65;
   }
 
+  printf("Post - Dec key data: %d\n", connection_data->cipher[3]);
+  printf("Post - Char key data: %d\n", connection_data->cipher[3]);
   printf("SERVER: Cipher text sent to client: \"%s\"\n", connection_data->key);
 
   return;

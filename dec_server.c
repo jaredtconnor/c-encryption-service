@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 
 #define MAXLEN 100000
 
@@ -180,15 +181,45 @@ void init_data(encrypt_data_t * data)
 void decrypt(encrypt_data_t * connection_data)
 {
 
-  printf("SERVER: Recieved data from client: \"%s\"\n", connection_data->cipher);
+  printf("SERVER: Recieved encrypted data from client: \"%s\"\n", connection_data->cipher);
   printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
+
+  printf("Pre - Dec cipher data: %d\n", connection_data->cipher[3]);
+  printf("Pre - Char cipher data: %c\n", connection_data->cipher[3]);
+  printf("Pre - Dec key data: %d\n", connection_data->key[3]);
+  printf("Pre - Char key data: %c\n", connection_data->key[3]);
 
   for (int i = 0; i <= connection_data->key_len_read; i++)
   {
-    connection_data->data[i] = (connection_data->cipher[i] - connection_data->key[i]) % 26 + 65;
+    if (((connection_data->cipher[i] - connection_data->key[i]) % 26) < 0)  
+   { 
+       connection_data->data[i] = (((connection_data->cipher[i] - 65) - connection_data->key[i]) % 26) + 26);
+   } else { 
+       connection_data->data[i] = ((connection_data->cipher[i] - connection_data->key[i]) % 26);
+   }
   }
 
-  printf("SERVER: Cipher text sent to client: \"%s\"\n", connection_data->data);
+  for (int i = 0; i <= connection_data->key_len_read; i++)
+  {
+      if((connection_data->data[i] - 65) == 32){ 
+          connection_data->data[i] = 32;
+      }
+  }
+
+
+
+
+  printf("Post - Dec key data: %d\n", connection_data->data[3]);
+  printf("Post - Char key data: %d\n", connection_data->data[3]);
+  printf("SERVER: Decrypted text sent to client: \"%s\"\n", connection_data->data);
 
   return;
+}
+
+bool checkspace(int){ 
+
+    bool result = false; 
+    if()
+
+
 }
