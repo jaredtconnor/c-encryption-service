@@ -18,6 +18,9 @@ client:
 client_run: 
 	./enc_client test_scripts/plaintext1 testkey 56111 > testciphertext
 
+client_test: 
+	./enc_client test_scripts/plaintext1 testkey 56111
+
 decclient: 
 	gcc -std=gnu99 -Wall -g -o dec_client dec_client.c
 

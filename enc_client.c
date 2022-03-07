@@ -6,8 +6,10 @@
 #include <sys/socket.h> // send(),recv()
 #include <netdb.h>      // gethostbyname()
 #include <stdbool.h>
+#include <ctype.h>
 
 #define MAXLEN 100000
+#define AUTHLEN 50
 
 bool DEBUG = false;
 
@@ -58,9 +60,10 @@ void setupAddressStruct(struct sockaddr_in *address,
 
 int main(int argc, char *argv[])
 {
-  int socketFD, portNumber, charsWritten, charsRead;
+  int socketFD, portNumber, charsWritten, charsRead, authWritten;
   struct sockaddr_in serverAddress;
   char buffer[MAXLEN];
+  char auth[AUTHLEN] = "ENC";
   char reply_buffer[MAXLEN];
   char key_buffer[MAXLEN];
   char encrypyt_buffer[MAXLEN];
@@ -92,7 +95,7 @@ int main(int argc, char *argv[])
       error("Unable to read file\n");
     }
 
-    buffer[strcspn(buffer, "\r\n\0")] = 0;
+    buffer[strcspn(buffer, "\r\n")] = 0;
     fclose(inputfile);
   }
 
@@ -105,7 +108,7 @@ int main(int argc, char *argv[])
       error("Unable to read key file\n");
     }
 
-    buffer[strcspn(buffer, "\r")] = 0;
+    key_buffer[strcspn(key_buffer, "\r\n")] = 0;
     fclose(keyfile);
   }
 
@@ -128,6 +131,15 @@ int main(int argc, char *argv[])
   if (connect(socketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
   {
     error("CLIENT: ERROR connecting");
+  }
+
+  authWritten = send(socketFD, auth, strlen(auth), 0);
+  charsRead = recv(socketFD, reply_buffer, sizeof(reply_buffer) - 1, 0);
+
+  if (strcmp(reply_buffer, "ENC") != 0) {
+    fprintf(stderr, "Reply - %s\n", reply_buffer);
+    fprintf(stderr,"SERVER: Unable to contact enc server\n");
+    exit(2);
   }
 
   // Write to the server
@@ -170,7 +182,7 @@ int main(int argc, char *argv[])
     printf("CLIENT: I received this encyrpted message the server: \"%s\"\n", encrypyt_buffer);
   }
 
-  fprintf(stdout, "%s", encrypyt_buffer);
+  fprintf(stdout, "%s\n", encrypyt_buffer);
 
   // Close the socket
   close(socketFD);

@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 #define MAXLEN 100000
+#define AUTHLEN 50
 
 bool DEBUG = false;
 
@@ -58,8 +59,9 @@ void setupAddressStruct(struct sockaddr_in *address,
 
 int main(int argc, char *argv[])
 {
-    int socketFD, portNumber, charsWritten, charsRead;
+    int socketFD, portNumber, charsWritten, charsRead, authWritten;
     struct sockaddr_in serverAddress;
+    char auth[MAXLEN] = "DEC";
     char buffer[MAXLEN];
     char reply_buffer[MAXLEN];
     char key_buffer[MAXLEN];
@@ -132,6 +134,15 @@ int main(int argc, char *argv[])
         error("CLIENT: ERROR connecting");
     }
 
+
+    authWritten = send(socketFD, auth, strlen(auth), 0);
+    charsRead = recv(socketFD, reply_buffer, sizeof(reply_buffer) - 1, 0);
+
+    if (strcmp(reply_buffer, "DEC") != 0) {
+        fprintf(stderr, "Reply - %s\n", reply_buffer);
+        fprintf(stderr,"SERVER: Unable to contact dec server\n");
+        exit(2);
+    }
     // Write to the server
     charsWritten = send(socketFD, buffer, strlen(buffer), 0);
 

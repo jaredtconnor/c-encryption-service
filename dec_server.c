@@ -8,9 +8,12 @@
 #include <stdbool.h>
 
 #define MAXLEN 100000
+#define AUTHLEN 50
 
 typedef struct encrypt_data
 {
+    char auth[AUTHLEN];
+    int auth_len;
     char data[MAXLEN];
     int data_len_read;
     char key[MAXLEN];
@@ -27,7 +30,7 @@ void setupAddressStruct(struct sockaddr_in *, int);
 void init_data(encrypt_data_t *data);
 void decrypt(encrypt_data_t *data);
 char convert(int);
-char deconvert(int);
+int deconvert(char);
 
 int main(int argc, char *argv[])
 {
@@ -91,6 +94,22 @@ int main(int argc, char *argv[])
         {
 
             close(listenSocket);
+
+            connection_data.auth_len = recv(newCon, connection_data.auth, sizeof(AUTHLEN) - 1, 0);
+            printf("AUTH KEY - %s\n", connection_data.auth);
+
+            if (strcmp(connection_data.auth, "DEC") != 0)
+            {
+                char response[] = "INVALID";
+                write(newCon, response, sizeof(response));
+                exit(2);
+            }
+            else
+            {
+                // write confirmation back to client
+                char response[] = "DEC";
+                write(newCon, response, sizeof(response));
+            }
 
             printf("CHILD - Encrypting message\n");
             counter++;
@@ -168,10 +187,12 @@ void setupAddressStruct(struct sockaddr_in *address,
 void init_data(encrypt_data_t *data)
 {
 
+    memset(data->auth, '\0', AUTHLEN);
     memset(data->data, '\0', MAXLEN);
     memset(data->key, '\0', MAXLEN);
     memset(data->cipher, '\0', MAXLEN);
 
+    data->auth_len = 0;
     data->data_len_read = 0;
     data->key_len_read = 0;
     data->cipher_len = 0;
@@ -181,53 +202,56 @@ void init_data(encrypt_data_t *data)
 void decrypt(encrypt_data_t *connection_data)
 {
 
-    int cipher; 
+    int decipher = 0;
+    int data = 0;
+    int key = 0;
     printf("SERVER: Recieved encrypted data from client: \"%s\"\n", connection_data->cipher);
     printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
 
-    printf("Pre - Dec cipher data: %d\n", connection_data->cipher[3]);
-    printf("Pre - Char cipher data: %c\n", connection_data->cipher[3]);
-    printf("Pre - Dec key data: %d\n", connection_data->key[3]);
-    printf("Pre - Char key data: %c\n", connection_data->key[3]);
-
-    for (int i = 0; i <= connection_data->key_len_read; i++)
+    for (int i = 0; i < connection_data->cipher_len; i++)
     {
-
-        cipher = (connection_data->cipher[i] - connection_data->key[i]) % 27;
-
-        if(cipher < 0){ 
-            cipher = cipher + 26;
+        if (connection_data->cipher[i] == 0)
+        {
+            continue;
         }
 
-        connection_data->cipher[i] = deconvert(cipher); 
+        data = deconvert(connection_data->cipher[i]);
+        key = deconvert(connection_data->key[i]);
 
+        decipher = (data - key) % 27;
+
+        if (decipher < 0)
+        {
+            decipher = decipher + 27;
+        }
+
+        connection_data->data[i] = convert(decipher);
     }
 
-    printf("Post - Dec data data: %d\n", connection_data->data[3]);
-    printf("Post - Char data data: %d\n", connection_data->data[3]);
-    printf("SERVER: Decrypted text sent to client: \"%s\"\n", connection_data->data);
+    printf("\nSERVER: Decrypted text sent to client: \"%s\"\n", connection_data->data);
 
     return;
 }
 
 char convert(int input)
 {
-  char allowablechars[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
-  return allowablechars[input];
+    char allowablechars[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+    return allowablechars[input];
 }
 
-char deconvert(int input){ 
+int deconvert(char input)
+{
+    int result = -1;
+    char allowablechars[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
 
-  char allowablechars[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
-  char result;
-
-  for(int i=0; i<strlen(allowablechars); i++){ 
-    
-    if(allowablechars[i] == input){ 
-      result = i;
+    for (int i = 0; i < 27; i++)
+    {
+        if (allowablechars[i] == input)
+        {
+            result = i;
+            break;
+        }
     }
 
-  }
-
-  return result;
+    return result;
 }
