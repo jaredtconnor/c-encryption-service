@@ -9,7 +9,9 @@
 
 #define MAXLEN 100000
 #define AUTHLEN 50
+bool DEBUG = false;
 
+/* DATA PROTOTYPES */
 typedef struct encrypt_data
 {
     char auth[AUTHLEN];
@@ -34,12 +36,10 @@ int deconvert(char);
 
 int main(int argc, char *argv[])
 {
-    int newCon, charsRead, charSent;
-    char buffer[MAXLEN];
+    int newCon;
     struct sockaddr_in serverAddress, clientAddress;
     socklen_t sizeOfClientInfo = sizeof(clientAddress);
     pid_t con_pid;
-    static int counter = 0;
     encrypt_data_t connection_data;
     init_data(&connection_data);
 
@@ -90,13 +90,20 @@ int main(int argc, char *argv[])
                ntohs(clientAddress.sin_addr.s_addr),
                ntohs(clientAddress.sin_port));
 
+        /* FORK: 
+           forking the main process to allow for multiple children in a 
+           concurrent manner
+        */
         if ((con_pid = fork()) == 0)
         {
 
+            // close initial listening socket
             close(listenSocket);
 
+            /* 
+            AUTH SECTION
+            */
             connection_data.auth_len = recv(newCon, connection_data.auth, sizeof(AUTHLEN) - 1, 0);
-            printf("AUTH KEY - %s\n", connection_data.auth);
 
             if (strcmp(connection_data.auth, "DEC") != 0)
             {
@@ -111,9 +118,9 @@ int main(int argc, char *argv[])
                 write(newCon, response, sizeof(response));
             }
 
-            printf("CHILD - Encrypting message\n");
-            counter++;
-
+            /* 
+            DATA GET SECTION
+            */
             memset(connection_data.cipher, '\0', MAXLEN);
             connection_data.cipher_len = recv(newCon, connection_data.cipher, MAXLEN, 0);
 
@@ -122,6 +129,9 @@ int main(int argc, char *argv[])
                 error("ERROR reading from socket");
             }
 
+            /* 
+            KEY GET SECTION
+            */
             // Send a Success message back to the client
             char sendkey_reply[] = "SENDKEY\0";
             connection_data.len_sent = send(newCon, sendkey_reply, strlen(sendkey_reply), 0);
@@ -140,6 +150,7 @@ int main(int argc, char *argv[])
                 error("ERROR reading from socket");
             }
 
+            // decrypt section 
             decrypt(&connection_data);
 
             // Send encrypted data to client
@@ -184,6 +195,12 @@ void setupAddressStruct(struct sockaddr_in *address,
     address->sin_addr.s_addr = INADDR_ANY;
 }
 
+/*
+ * FUNCTION - init_data
+ * DESC - initializes the required data members
+ *        for the struct
+ *
+ */
 void init_data(encrypt_data_t *data)
 {
 
@@ -199,14 +216,26 @@ void init_data(encrypt_data_t *data)
     data->len_sent = 0;
 }
 
+/*
+ * FUNCTION - decrypt 
+ * DESC - reverse one time pads the data recieved by the client
+ *        and populates the data struct's cipher based on 
+ *        that key/data pair
+ */
 void decrypt(encrypt_data_t *connection_data)
 {
 
     int decipher = 0;
     int data = 0;
     int key = 0;
-    printf("SERVER: Recieved encrypted data from client: \"%s\"\n", connection_data->cipher);
-    printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
+    if (DEBUG)
+    {
+        printf("SERVER: Recieved encrypted data from client: \"%s\"\n", connection_data->cipher);
+    }
+    if (DEBUG)
+    {
+        printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
+    }
 
     for (int i = 0; i < connection_data->cipher_len; i++)
     {
@@ -228,17 +257,32 @@ void decrypt(encrypt_data_t *connection_data)
         connection_data->data[i] = convert(decipher);
     }
 
-    printf("\nSERVER: Decrypted text sent to client: \"%s\"\n", connection_data->data);
+    if (DEBUG)
+    {
+        printf("\nSERVER: Decrypted text sent to client: \"%s\"\n", connection_data->data);
+    }
 
     return;
 }
 
+/*
+ * FUNCTION - convert 
+ * DESC - converts an int ascii value to an index
+ *        corresponding to the specific element in the
+ *        allowable chars 
+*/
 char convert(int input)
 {
     char allowablechars[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
     return allowablechars[input];
 }
 
+/*
+ * FUNCTION - deconvert 
+ * DESC - deconverts a char to an ascii int value to 
+ *        corresponding to the specific element in the
+ *        allowable chars 
+*/
 int deconvert(char input)
 {
     int result = -1;

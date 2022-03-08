@@ -1,4 +1,5 @@
 #include <stdio.h>
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -60,7 +61,7 @@ void setupAddressStruct(struct sockaddr_in *address,
 
 int main(int argc, char *argv[])
 {
-  int socketFD, portNumber, charsWritten, charsRead, authWritten;
+  int socketFD, charsWritten, charsRead, authWritten;
   struct sockaddr_in serverAddress;
   char buffer[MAXLEN];
   char auth[AUTHLEN] = "ENC";
@@ -86,6 +87,7 @@ int main(int argc, char *argv[])
   memset(buffer, '\0', sizeof(buffer));
   memset(key_buffer, '\0', sizeof(key_buffer));
 
+  // READING INPUT
   if (inputfile != NULL)
   {
     input_len = fread(buffer, sizeof(char), MAXLEN, inputfile);
@@ -99,6 +101,7 @@ int main(int argc, char *argv[])
     fclose(inputfile);
   }
 
+  // READING KEY
   if (keyfile != NULL)
   {
     key_len = fread(key_buffer, sizeof(char), MAXLEN, keyfile);
@@ -112,6 +115,7 @@ int main(int argc, char *argv[])
     fclose(keyfile);
   }
 
+  // DATA ERROR - input len is longer than available key
   if (key_len < input_len)
   {
     error("CLIENT: ERROR Keygen is unable to cover input length\n");
@@ -133,16 +137,27 @@ int main(int argc, char *argv[])
     error("CLIENT: ERROR connecting");
   }
 
+  /*
+  AUTH SECTION
+  */
   authWritten = send(socketFD, auth, strlen(auth), 0);
+  if (authWritten < strlen(auth))
+  {
+    printf("CLIENT: WARNING: Not all data written to socket!\n");
+  }
+
   charsRead = recv(socketFD, reply_buffer, sizeof(reply_buffer) - 1, 0);
 
-  if (strcmp(reply_buffer, "ENC") != 0) {
+  if (strcmp(reply_buffer, "ENC") != 0)
+  {
     fprintf(stderr, "Reply - %s\n", reply_buffer);
-    fprintf(stderr,"SERVER: Unable to contact enc server\n");
+    fprintf(stderr, "SERVER: Unable to contact enc server\n");
     exit(2);
   }
 
-  // Write to the server
+  /*
+  DATA SEND SECTION
+  */
   charsWritten = send(socketFD, buffer, strlen(buffer), 0);
 
   if (charsWritten < 0)
@@ -155,6 +170,9 @@ int main(int argc, char *argv[])
     printf("CLIENT: WARNING: Not all data written to socket!\n");
   }
 
+  /*
+  KEY SEND SECTION
+  */
   memset(reply_buffer, '\0', sizeof(reply_buffer));
   charsRead = recv(socketFD, reply_buffer, sizeof(reply_buffer) - 1, 0);
   if (charsRead < 0)
@@ -182,6 +200,7 @@ int main(int argc, char *argv[])
     printf("CLIENT: I received this encyrpted message the server: \"%s\"\n", encrypyt_buffer);
   }
 
+  // OUTPUT final result from server
   fprintf(stdout, "%s\n", encrypyt_buffer);
 
   // Close the socket

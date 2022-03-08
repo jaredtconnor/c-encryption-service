@@ -60,7 +60,7 @@ clean:
 	rm keygen 
 
 test:
-	./p5testscript
+	./p5testscript 56111 56112 > mytestresults 2>&1
 
 valgrind-key: 
 	valgrind -s --leak-check=yes --track-origins=yes --show-reachable=yes --log-file="valgrind.txt" ./keygen 25

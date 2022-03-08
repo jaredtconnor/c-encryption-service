@@ -6,6 +6,7 @@
 #include <sys/socket.h> // send(),recv()
 #include <netdb.h>      // gethostbyname()
 #include <stdbool.h>
+#include <ctype.h>
 
 #define MAXLEN 100000
 #define AUTHLEN 50
@@ -59,7 +60,7 @@ void setupAddressStruct(struct sockaddr_in *address,
 
 int main(int argc, char *argv[])
 {
-    int socketFD, portNumber, charsWritten, charsRead, authWritten;
+    int socketFD, charsWritten, charsRead, authWritten;
     struct sockaddr_in serverAddress;
     char auth[MAXLEN] = "DEC";
     char buffer[MAXLEN];
@@ -85,6 +86,7 @@ int main(int argc, char *argv[])
     memset(buffer, '\0', sizeof(buffer));
     memset(key_buffer, '\0', sizeof(key_buffer));
 
+    // READ INPUT
     if (inputfile != NULL)
     {
         input_len = fread(buffer, sizeof(char), MAXLEN, inputfile);
@@ -98,6 +100,7 @@ int main(int argc, char *argv[])
         fclose(inputfile);
     }
 
+    // READ KEY
     if (keyfile != NULL)
     {
         key_len = fread(key_buffer, sizeof(char), MAXLEN, keyfile);
@@ -111,11 +114,10 @@ int main(int argc, char *argv[])
         fclose(keyfile);
     }
 
-
+    // DATA ERROR - input len is longer than available key
     if (key_len < input_len)
     {
         error("CLIENT: IS THIS FUCKING WORKING ERROR Keygen is unable to cover input length\n");
-        exit(0);
     }
 
     // Create a socket
@@ -134,16 +136,24 @@ int main(int argc, char *argv[])
         error("CLIENT: ERROR connecting");
     }
 
-
+    /*
+    AUTH SECTION
+    */
     authWritten = send(socketFD, auth, strlen(auth), 0);
+    if (authWritten < strlen(auth))
+    {
+        error("CLIENT: WARNING: Not all data written to socket!\n");
+    }
     charsRead = recv(socketFD, reply_buffer, sizeof(reply_buffer) - 1, 0);
 
-    if (strcmp(reply_buffer, "DEC") != 0) {
-        fprintf(stderr, "Reply - %s\n", reply_buffer);
-        fprintf(stderr,"SERVER: Unable to contact dec server\n");
+    if (strcmp(reply_buffer, "DEC") != 0)
+    {
+        error("SERVER: Unable to contact dec server\n");
         exit(2);
     }
-    // Write to the server
+    /*
+    DATA SEND SECTION
+    */
     charsWritten = send(socketFD, buffer, strlen(buffer), 0);
 
     if (charsWritten < 0)
@@ -153,9 +163,12 @@ int main(int argc, char *argv[])
 
     if (charsWritten < strlen(buffer))
     {
-        printf("CLIENT: WARNING: Not all data written to socket!\n");
+        error("CLIENT: WARNING: Not all data written to socket!\n");
     }
 
+    /*
+    KEY SEND SECTION
+    */
     memset(reply_buffer, '\0', sizeof(reply_buffer));
     charsRead = recv(socketFD, reply_buffer, sizeof(reply_buffer) - 1, 0);
     if (charsRead < 0)

@@ -5,10 +5,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 
 #define MAXLEN 100000
 #define AUTHLEN 50
+bool DEBUG = false;
 
+/* DATA PROTOTYPES */
 typedef struct encrypt_data
 {
     char auth[AUTHLEN];
@@ -19,7 +22,6 @@ typedef struct encrypt_data
     int key_len_read;
     char cipher[MAXLEN];
     int cipher_len;
-
     int len_sent;
 } encrypt_data_t;
 
@@ -29,11 +31,11 @@ void setupAddressStruct(struct sockaddr_in *, int);
 void init_data(encrypt_data_t *data);
 void encrypt(encrypt_data_t *data);
 char convert(int);
-int deconvert(char);
+int  deconvert(char);
 
 int main(int argc, char *argv[])
 {
-    int newCon, charsRead, charSent;
+    int newCon;
     struct sockaddr_in serverAddress, clientAddress;
     socklen_t sizeOfClientInfo = sizeof(clientAddress);
     pid_t con_pid;
@@ -75,25 +77,33 @@ int main(int argc, char *argv[])
     while (1)
     {
         // Accept the connection request which creates a connection socket
-        newCon = accept(listenSocket,
-                        (struct sockaddr *)&clientAddress,
-                        &sizeOfClientInfo);
+        newCon = accept(listenSocket, (struct sockaddr *)&clientAddress, &sizeOfClientInfo);
+
         if (newCon < 0)
         {
             error("ERROR on accept");
         }
 
-        printf("SERVER: Connected to client running at host %d port %d\n",
+        if(DEBUG) { 
+            printf("SERVER: Connected to client running at host %d port %d\n",
                ntohs(clientAddress.sin_addr.s_addr),
                ntohs(clientAddress.sin_port));
+        }
 
+        /* FORK: 
+           forking the main process to allow for multiple children in a 
+           concurrent manner
+        */
         if ((con_pid = fork()) == 0)
         {
-
+            
+            // close initial listening socket
             close(listenSocket);
 
+            /* 
+            AUTH SECTION
+            */
             connection_data.auth_len = recv(newCon, connection_data.auth, sizeof(AUTHLEN) - 1, 0);
-            printf("AUTH KEY - %s\n", connection_data.auth);
 
             if (strcmp(connection_data.auth, "ENC") != 0)
             {
@@ -108,6 +118,9 @@ int main(int argc, char *argv[])
                 write(newCon, response, sizeof(response));
             }
 
+            /* 
+            DATA GET SECTION
+            */
             connection_data.data_len_read = recv(newCon, connection_data.data, MAXLEN, 0);
 
             if (connection_data.data_len_read < 0)
@@ -124,6 +137,9 @@ int main(int argc, char *argv[])
                 error("ERROR writing to socket");
             }
 
+            /* 
+            KEY GET SECTION
+            */
             memset(connection_data.key, '\0', MAXLEN);
             connection_data.key_len_read = recv(newCon, connection_data.key, MAXLEN, 0);
 
@@ -132,6 +148,7 @@ int main(int argc, char *argv[])
                 error("ERROR reading from socket");
             }
 
+            // Encrypt message
             encrypt(&connection_data);
 
             // Send encrypted data to client
@@ -175,6 +192,12 @@ void setupAddressStruct(struct sockaddr_in *address,
     address->sin_addr.s_addr = INADDR_ANY;
 }
 
+/*
+ * FUNCTION - init_data
+ * DESC - initializes the required data members
+ *        for the struct
+ *
+ */
 void init_data(encrypt_data_t *data)
 {
 
@@ -190,14 +213,26 @@ void init_data(encrypt_data_t *data)
     data->len_sent = 0;
 }
 
+/*
+ * FUNCTION - encrypt
+ * DESC - one time pads the data recieved by the client
+ *        and populates the data struct's cipher based on 
+ *        that key/data pair
+ */
 void encrypt(encrypt_data_t *connection_data)
 {
 
     int cipher = 0;
     int data = 0;
     int key = 0;
-    printf("SERVER: Recieved encrypted data from client: \"%s\"\n", connection_data->data);
-    printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
+    if (DEBUG)
+    {
+        printf("SERVER: Recieved encrypted data from client: \"%s\"\n", connection_data->data);
+    }
+    if (DEBUG)
+    {
+        printf("SERVER: Recieved key from client: \"%s\"\n", connection_data->key);
+    }
 
     for (int i = 0; i <= connection_data->data_len_read; i++)
     {
@@ -214,17 +249,32 @@ void encrypt(encrypt_data_t *connection_data)
         connection_data->cipher[i] = convert(cipher);
     }
 
-    printf("\nSERVER: Decrypted text sent to client: \"%s\"\n", connection_data->cipher);
+    if (DEBUG)
+    {
+        printf("\nSERVER: Decrypted text sent to client: \"%s\"\n", connection_data->cipher);
+    }
 
     return;
 }
 
+/*
+ * FUNCTION - convert 
+ * DESC - converts an int ascii value to an index
+ *        corresponding to the specific element in the
+ *        allowable chars 
+*/
 char convert(int input)
 {
     char allowablechars[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
     return allowablechars[input];
 }
 
+/*
+ * FUNCTION - deconvert 
+ * DESC - deconverts a char to an ascii int value to 
+ *        corresponding to the specific element in the
+ *        allowable chars 
+*/
 int deconvert(char input)
 {
     int result = -1;
