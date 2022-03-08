@@ -97,6 +97,13 @@ int main(int argc, char *argv[])
         }
 
         buffer[strcspn(buffer, "\r\n")] = 0;
+
+        // Invalid input capture
+        if (buffer[0] < 65 && buffer[0] != 32)
+        {
+            error("CLIENT - Unaccepted characters passed\n");
+        }
+
         fclose(inputfile);
     }
 
