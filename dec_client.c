@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
         printf("CLIENT: I received this encyrpted message the server: \"%s\"\n", decrypyt_buffer);
     }
 
-    fprintf(stdout, "%s", decrypyt_buffer);
+    fprintf(stdout, "%s\n", decrypyt_buffer);
 
     // Close the socket
     close(socketFD);

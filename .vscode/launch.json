@@ -60,11 +60,9 @@
             "request": "launch",
             "program": "${workspaceFolder}/enc_client",
             "args": [
-                "test_scripts/plaintext1", 
-                "testkey", 
+                "plaintext1", 
+                "key70000", 
                 "56112", 
-                ">", 
-                "testciphertext"
             ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}", 

@@ -98,8 +98,15 @@ int main(int argc, char *argv[])
     }
 
     buffer[strcspn(buffer, "\r\n")] = 0;
+    printf("CURRENT CHAR TO INT IS %d\n", buffer[0] - '0');
+
+    if(buffer[0] < 65 && buffer[0] != 32){ 
+      error("CLIENT - Unaccepted characters passed\n");
+    }
     fclose(inputfile);
   }
+
+
 
   // READING KEY
   if (keyfile != NULL)
@@ -120,6 +127,7 @@ int main(int argc, char *argv[])
   {
     error("CLIENT: ERROR Keygen is unable to cover input length\n");
   }
+
 
   // Create a socket
   socketFD = socket(AF_INET, SOCK_STREAM, 0);
